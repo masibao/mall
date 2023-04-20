@@ -168,7 +168,46 @@ mall
 | Kibana        | 7.17.3 | https://www.elastic.co/cn/downloads/kibana                   |
 
 ### 搭建步骤
+>mysql容器安装
+````
+sudo docker run -d -p 3306:3306 TZ=Asia/Shanghai --privileged=true -v /Users/mays/dockerDir/mysql/conf:/etc/mysql/conf.d -v /Users/mays/dockerDir/mysql/data:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=123456 --name  mysql mysql:latest
+````
+>es容器安装
+```
+#启动镜像
+docker run --name elasticsearch -e TZ=Asia/Shanghai -v /Users/mays/dockerDir/elasticsearch/data:/usr/share/elasticsearch/data -v/Users/mays/dockerDir/elasticsearch/config:/usr/share/elasticsearch/config -v /Users/mays/dockerDir/elasticsearch/logs:/usr/share/elasticsearch/logs -v /Users/mays/dockerDir/elasticsearch/plugins:/usr/share/elasticsearch/plugins --privileged=true --network es-net -d -e ES_JAVA_OPTS="-Xms1g -Xmx1g" -e "discovery.type=single-node" -p 9200:9200 -p 9300:9300 elasticsearch:7.17.9
+使用 docker exec -it elasticsearch /bin/bash 进入容器
+#进入容器后，执行以下命令
+./bin/elasticsearch-plugin install https://github.com/medcl/elasticsearch-analysis-ik/releases/download/v8.0.0/elasticsearch-analysis-ik-8.0.0.zip
 
+#redis暗转
+docker run --restart=always -e TZ=Asia/Shanghai -p 6379:6379 -v /Users/mays/dockerDir/redis/data:/data --name myredis -d redis redis-server --appendonly yes
+
+#kibana安装
+docker pull kibana:7.17.9
+docker run -d \
+--restart=always \
+--name kibana \
+-e ELASTICSEARCH_HOSTS=http://elasticsearch:9200 \
+-e i18n.locale=zh-CN \
+-e TZ=Asia/Shanghai \
+--network=es-net \
+-p 5601:5601  \
+--privileged=true \
+-d \
+kibana:7.17.9
+
+$ docker run --restart=always -e TZ=Asia/Shanghai --privileged=true -d --name kibana -p 5601:5601 kibana:7.17.9
+docker run --restart=always -e TZ=Asia/Shanghai --privileged=true --name kibana -d -p 5601:5601 -v /Users/mays/dockerDir/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml kibana:7.17.9
+
+#eshead 在es的elasticserach.yml中添加以下配置，否则会报跨域错误
+http.cors.enabled : true
+http.cors.allow-origin : "*"
+http.cors.allow-methods : OPTIONS, HEAD, GET, POST, PUT, DELETE
+http.cors.allow-headers : X-Requested-With,X-Auth-Token,Content-Type,Content-Length
+
+docker run --restart=always -e TZ=Asia/Shanghai -v /Users/mays/dockerDir/es-head/vendor.js:/usr/src/app/_site/vendor.js -p 9100:9100 --name es-head -d mobz/elasticsearch-head:5
+```
 > Windows环境部署
 
 - Windows环境搭建请参考：[mall在Windows环境下的部署](https://www.macrozheng.com/mall/deploy/mall_deploy_windows.html);
